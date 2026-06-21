@@ -1,0 +1,11 @@
+{
+  "name": "the-literary-nexus",
+  "version": "1.0.0",
+  "description": "Static landing page for The Literary Nexus event series.",
+  "scripts": {
+    "dev": "npx -y http-server -c-1 -p 3000 ."
+  },
+  "keywords": [],
+  "author": "Antigravity Development Consultants",
+  "license": "ISC"
+}
