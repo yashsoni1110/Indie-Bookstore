@@ -14,18 +14,29 @@ let lastFocused   = null;
 document.addEventListener('DOMContentLoaded', init);
 
 function init() {
+  // Critical setup required for basic content & layout
+  setupDarkMode();
+  setupMobileNav();
+  setupListeners();
+  setupScrollEffects();
   fetchEventData();
   fetchSpeakers();
-  setupScrollEffects();
-  setupMobileNav();
-  setupDarkMode();
+
+  // Defer decorative scripts until the browser is idle to keep the main thread unblocked
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(deferredInit);
+  } else {
+    setTimeout(deferredInit, 120);
+  }
+}
+
+function deferredInit() {
   setupScheduleFilter();
   startTypewriter();
   updateSeatsDisplay();
   spawnParticles();
   trackCursor();
   animateStats();
-  setupListeners();
 }
 
 // Event metadata
