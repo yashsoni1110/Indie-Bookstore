@@ -1211,12 +1211,15 @@ a:hover {
   align-items: center;
   justify-content: center;
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   padding: var(--spacing-md);
 }
 .modal-overlay.active {
   opacity: 1;
+  visibility: visible;
   pointer-events: auto;
 }
 
@@ -1792,11 +1795,14 @@ a:hover {
   -webkit-backdrop-filter: blur(5px);
   z-index: 150;
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.35s ease;
+  transition: opacity 0.35s ease,
+              visibility 0.35s ease;
 }
 .mobile-nav-overlay.active {
   opacity: 1;
+  visibility: visible;
   pointer-events: auto;
 }
 .mobile-nav {
@@ -2423,6 +2429,7 @@ body.dark-mode .marquee-strip::after  { background: linear-gradient(to left,  va
   opacity: 0.2;
   display: block;
   margin-bottom: 1.5rem;
+  -webkit-user-select: none;
   user-select: none;
 }
 .quote-text {
@@ -2517,15 +2524,15 @@ body.dark-mode .marquee-strip::after  { background: linear-gradient(to left,  va
   content: '';
   position: absolute;
   top: 0;
-  left: -100%;
+  left: 0;
   width: 60%;
   height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-  transform: skewX(-15deg);
-  transition: left 0.6s ease;
+  transform: translateX(-150%) skewX(-15deg);
+  transition: transform 0.6s ease;
 }
 .btn-primary:hover::before {
-  left: 150%;
+  transform: translateX(250%) skewX(-15deg);
 }
 
 /* CTA Button Enhanced Pulse */
