@@ -10,24 +10,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-  <link rel="stylesheet" href="assets/css/main.css?v=5.0">
+  <link rel="stylesheet" href="assets/css/main.css?v=6.0">
 </head>
 <body>
 
+  <div class="reading-progress" id="reading-progress" aria-hidden="true"></div>
   <a href="#main-content" class="skip-link">Skip to Content</a>
-  <style>
-    .skip-link {
-      position: absolute;
-      top: -100px;
-      left: 0;
-      background: var(--brand-primary);
-      color: var(--text-light);
-      padding: 10px;
-      z-index: 9999;
-      transition: top 0.2s ease;
-    }
-    .skip-link:focus { top: 0; }
-  </style>
 
   <header class="site-header" role="banner">
     <div class="container">
@@ -47,17 +35,42 @@
           <li><a href="#rsvp">RSVP</a></li>
         </ul>
       </nav>
+      <div class="header-actions">
+        <button class="dark-mode-toggle" id="dark-mode-toggle" type="button" aria-label="Switch to dark mode">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+        <button class="hamburger" id="hamburger-btn" type="button" aria-label="Open navigation menu" aria-expanded="false" aria-controls="mobile-nav-overlay">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
     </div>
   </header>
+
+  <div class="mobile-nav-overlay" id="mobile-nav-overlay" role="dialog" aria-modal="true" aria-label="Navigation Menu" aria-hidden="true">
+    <nav class="mobile-nav">
+      <button class="mobile-nav-close" id="mobile-nav-close" type="button" aria-label="Close navigation menu">&times;</button>
+      <ul>
+        <li><a href="#authors">Authors</a></li>
+        <li><a href="#schedule">Schedule</a></li>
+        <li><a href="#logistics">Logistics</a></li>
+        <li><a href="#rsvp">RSVP</a></li>
+      </ul>
+      <div class="mobile-nav-footer">
+        <p>The Literary <span>Nexus</span></p>
+        <small>Portland Grand Ballroom &mdash; June 2026</small>
+      </div>
+    </nav>
+  </div>
 
   <main id="main-content">
     
     <section class="hero" aria-label="Introduction and Countdown">
-      <div class="hero-bg" style="background-image: url('https://picsum.photos/id/1015/1600/900');"></div>
+      <div class="hero-bg" style="background-image: url('assets/images/hero.png');"></div>
       <div class="hero-overlay"></div>
+      <div class="hero-particles" id="hero-particles" aria-hidden="true"></div>
       
       <div class="hero-content reveal">
-        <p class="hero-subtitle" id="hero-subtitle">A Signature Series Engagement</p>
+        <p class="hero-subtitle" id="hero-subtitle" aria-label="Event subtitle"></p>
         <h1 id="hero-title" class="reveal">The Literary Nexus Presents: Loading Event...</h1>
         
         <div class="hero-ornament" aria-hidden="true"></div>
@@ -91,6 +104,10 @@
           </div>
         </div>
 
+        <div class="hero-seat-counter" id="seats-counter" aria-live="polite">
+          <span class="seats-dot" aria-hidden="true"></span>
+          <span id="seats-count">--</span> seats remaining &mdash; closes soon
+        </div>
         <div>
           <a href="#rsvp" class="btn btn-primary pulse-cta" aria-label="Secure your exclusive engagement seat">Secure Your Exclusive Engagement Slot</a>
         </div>
@@ -105,6 +122,32 @@
       </a>
     </section>
 
+    <section class="stats-strip" aria-label="Event highlights">
+      <div class="container">
+        <div class="stats-grid">
+          <div class="stat-item reveal">
+            <span class="stat-number" data-target="5">0</span>
+            <span class="stat-label">Featured Authors</span>
+          </div>
+          <div class="stat-divider" aria-hidden="true"></div>
+          <div class="stat-item reveal">
+            <span class="stat-number" data-target="80">0</span>
+            <span class="stat-label">Exclusive Seats</span>
+          </div>
+          <div class="stat-divider" aria-hidden="true"></div>
+          <div class="stat-item reveal">
+            <span class="stat-number" data-target="4">0</span>
+            <span class="stat-label">Hours of Culture</span>
+          </div>
+          <div class="stat-divider" aria-hidden="true"></div>
+          <div class="stat-item reveal">
+            <span class="stat-number" data-target="1">0</span>
+            <span class="stat-label">Unforgettable Evening</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="authors" class="section authors-section" aria-labelledby="authors-heading">
       <div class="container">
         <header class="section-header">
@@ -113,12 +156,31 @@
         </header>
 
         <div class="authors-grid reveal-stagger" id="authors-grid">
-          <div style="text-align: center; grid-column: 1 / -1; padding: 20px; color: var(--text-dark-muted);">
-            Retrieving literary registry...
-          </div>
+          <div class="loading-placeholder">Retrieving literary registry...</div>
         </div>
       </div>
     </section>
+
+    <div class="marquee-strip" aria-hidden="true" role="presentation">
+      <div class="marquee-track">
+        <span class="marquee-item">&ldquo;A reader lives a thousand lives before he dies.&rdquo; &mdash; George R.R. Martin</span>
+        <span class="marquee-sep">✦</span>
+        <span class="marquee-item">&ldquo;There is no friend as loyal as a book.&rdquo; &mdash; Ernest Hemingway</span>
+        <span class="marquee-sep">✦</span>
+        <span class="marquee-item">&ldquo;One must always be careful of books, and what is inside them.&rdquo; &mdash; Cassandra Clare</span>
+        <span class="marquee-sep">✦</span>
+        <span class="marquee-item">&ldquo;Books are a uniquely portable magic.&rdquo; &mdash; Stephen King</span>
+        <span class="marquee-sep">✦</span>
+        <span class="marquee-item">&ldquo;A room without books is like a body without a soul.&rdquo; &mdash; Marcus Tullius Cicero</span>
+        <span class="marquee-sep">✦</span>
+        <span class="marquee-item">&ldquo;There is no friend as loyal as a book.&rdquo; &mdash; Ernest Hemingway</span>
+        <span class="marquee-sep">✦</span>
+        <span class="marquee-item">&ldquo;A reader lives a thousand lives before he dies.&rdquo; &mdash; George R.R. Martin</span>
+        <span class="marquee-sep">✦</span>
+        <span class="marquee-item">&ldquo;Books are a uniquely portable magic.&rdquo; &mdash; Stephen King</span>
+        <span class="marquee-sep">✦</span>
+      </div>
+    </div>
 
     <section id="schedule" class="section schedule-section" aria-labelledby="schedule-heading">
       <div class="container">
@@ -127,35 +189,43 @@
           <p>Chronological course of the signature engagement evening.</p>
         </header>
 
+        <div class="schedule-filters" role="group" aria-label="Filter schedule by session type">
+          <button class="filter-btn active" data-filter="all" type="button">All Sessions</button>
+          <button class="filter-btn" data-filter="reception" type="button">Reception</button>
+          <button class="filter-btn" data-filter="reading" type="button">Readings</button>
+          <button class="filter-btn" data-filter="discussion" type="button">Discussions</button>
+          <button class="filter-btn" data-filter="networking" type="button">Networking</button>
+        </div>
+
         <div class="timeline-container">
           
-          <div class="timeline-item reveal">
+          <div class="timeline-item reveal" data-session="reception">
             <div class="timeline-badge" aria-hidden="true"></div>
             <div class="timeline-content">
               <div class="timeline-meta-row">
                 <span class="timeline-time">5:00 PM</span>
                 <span class="timeline-badge-tag">Lobby Salon</span>
               </div>
-              <h3 class="timeline-title">Doors Open & Welcome Reception</h3>
+              <h3 class="timeline-title">Doors Open &amp; Welcome Reception</h3>
               <p class="timeline-desc">Arrival of credentialed guests, custom cocktail service, and ambient string accompaniment.</p>
-              <button type="button" class="btn-calendar" data-title="Doors Open & Reception" data-offset-hour="17" data-offset-min="0">Add to Calendar</button>
+              <button type="button" class="btn-calendar" data-title="Doors Open &amp; Reception" data-offset-hour="17" data-offset-min="0">Add to Calendar</button>
             </div>
           </div>
 
-          <div class="timeline-item reveal">
+          <div class="timeline-item reveal" data-session="reading">
             <div class="timeline-badge" aria-hidden="true"></div>
             <div class="timeline-content">
               <div class="timeline-meta-row">
                 <span class="timeline-time">6:00 PM</span>
                 <span class="timeline-badge-tag">Grand Library</span>
               </div>
-              <h3 class="timeline-title">Author Reading & Opening Remarks</h3>
+              <h3 class="timeline-title">Author Reading &amp; Opening Remarks</h3>
               <p class="timeline-desc">First-edition reading segments presented by our featured authors inside the Grand Hall.</p>
-              <button type="button" class="btn-calendar" data-title="Author Reading & Remarks" data-offset-hour="18" data-offset-min="0">Add to Calendar</button>
+              <button type="button" class="btn-calendar" data-title="Author Reading &amp; Remarks" data-offset-hour="18" data-offset-min="0">Add to Calendar</button>
             </div>
           </div>
 
-          <div class="timeline-item reveal">
+          <div class="timeline-item reveal" data-session="discussion">
             <div class="timeline-badge" aria-hidden="true"></div>
             <div class="timeline-content">
               <div class="timeline-meta-row">
@@ -168,33 +238,46 @@
             </div>
           </div>
 
-          <div class="timeline-item reveal">
+          <div class="timeline-item reveal" data-session="discussion">
             <div class="timeline-badge" aria-hidden="true"></div>
             <div class="timeline-content">
               <div class="timeline-meta-row">
                 <span class="timeline-time">8:00 PM</span>
                 <span class="timeline-badge-tag">Auditorium</span>
               </div>
-              <h3 class="timeline-title">Moderated Q&A Session</h3>
+              <h3 class="timeline-title">Moderated Q&amp;A Session</h3>
               <p class="timeline-desc">Audience participation session. Ask questions directly to the featured novelists and poets.</p>
-              <button type="button" class="btn-calendar" data-title="Audience Q&A Session" data-offset-hour="20" data-offset-min="0">Add to Calendar</button>
+              <button type="button" class="btn-calendar" data-title="Audience Q&amp;A Session" data-offset-hour="20" data-offset-min="0">Add to Calendar</button>
             </div>
           </div>
 
-          <div class="timeline-item reveal">
+          <div class="timeline-item reveal" data-session="networking">
             <div class="timeline-badge" aria-hidden="true"></div>
             <div class="timeline-content">
               <div class="timeline-meta-row">
                 <span class="timeline-time">8:45 PM</span>
                 <span class="timeline-badge-tag">Rotunda Suite</span>
               </div>
-              <h3 class="timeline-title">Book Signing & Networking Gala</h3>
+              <h3 class="timeline-title">Book Signing &amp; Networking Gala</h3>
               <p class="timeline-desc">Secure author autographs on special editions, coupled with wine selections and closing relations.</p>
-              <button type="button" class="btn-calendar" data-title="Book Signing & Gala" data-offset-hour="20" data-offset-min="45">Add to Calendar</button>
+              <button type="button" class="btn-calendar" data-title="Book Signing &amp; Gala" data-offset-hour="20" data-offset-min="45">Add to Calendar</button>
             </div>
           </div>
 
         </div>
+      </div>
+    </section>
+
+    <section class="quote-section" aria-label="Featured literary quote">
+      <div class="container">
+        <blockquote class="featured-quote reveal">
+          <div class="quote-icon" aria-hidden="true">&ldquo;</div>
+          <p class="quote-text">Literature is the most agreeable way of ignoring life. The act of reading is the most gentle revolution. Every page turned is a world rebuilt.</p>
+          <footer class="quote-footer">
+            <span class="quote-ornament" aria-hidden="true">✦</span>
+            <cite class="quote-cite">The Literary Nexus, Portland</cite>
+          </footer>
+        </blockquote>
       </div>
     </section>
 
@@ -211,20 +294,20 @@
             
             <form id="rsvp-form" action="https://httpbin.org/post" method="POST" novalidate>
               <div class="form-group">
+                <input type="text" id="rsvp-name" name="name" class="form-control" placeholder=" " required aria-required="true">
                 <label for="rsvp-name" class="form-label">Full Name</label>
-                <input type="text" id="rsvp-name" name="name" class="form-control" placeholder="Your Full Name" required aria-required="true">
                 <span class="error-message" id="name-error" role="alert"></span>
               </div>
 
               <div class="form-group">
+                <input type="email" id="rsvp-email" name="email" class="form-control" placeholder=" " required aria-required="true">
                 <label for="rsvp-email" class="form-label">Email Address</label>
-                <input type="email" id="rsvp-email" name="email" class="form-control" placeholder="Your Professional Email" required aria-required="true">
                 <span class="error-message" id="email-error" role="alert"></span>
               </div>
 
               <div class="form-group">
-                <label for="rsvp-affiliation" class="form-label">Organization / Affiliation (Optional)</label>
-                <input type="text" id="rsvp-affiliation" name="affiliation" class="form-control" placeholder="Your University or Literary Institution">
+                <input type="text" id="rsvp-affiliation" name="affiliation" class="form-control" placeholder=" ">
+                <label for="rsvp-affiliation" class="form-label">Organization / Affiliation</label>
               </div>
 
               <div class="rsvp-btn-container">
@@ -266,36 +349,17 @@
 
           <div class="venue-map reveal">
             <a href="https://maps.google.com/?q=The+Literary+Nexus+Portland" target="_blank" class="map-card" aria-label="View venue location on Google Maps">
-              <svg viewBox="0 0 600 400" width="600" height="400" xmlns="http://www.w3.org/2000/svg" class="map-image" aria-hidden="true" style="background-color: #f6ebd8; display: block;">
-                <line x1="0" y1="100" x2="600" y2="100" stroke="#d4af37" stroke-width="3" opacity="0.3" />
-                <line x1="0" y1="200" x2="600" y2="200" stroke="#d4af37" stroke-width="3" opacity="0.3" />
-                <line x1="0" y1="300" x2="600" y2="300" stroke="#d4af37" stroke-width="3" opacity="0.3" />
+              <svg viewBox="0 0 600 400" width="600" height="400" xmlns="http://www.w3.org/2000/svg" class="map-image" aria-hidden="true">
+                <line x1="0" y1="100" x2="600" y2="100" stroke="currentColor" stroke-width="3" opacity="0.1" />
+                <line x1="0" y1="200" x2="600" y2="200" stroke="currentColor" stroke-width="3" opacity="0.1" />
+                <line x1="0" y1="300" x2="600" y2="300" stroke="currentColor" stroke-width="3" opacity="0.1" />
                 
-                <line x1="150" y1="0" x2="150" y2="400" stroke="#d4af37" stroke-width="3" opacity="0.3" />
-                <line x1="300" y1="0" x2="300" y2="400" stroke="#d4af37" stroke-width="3" opacity="0.3" />
-                <line x1="450" y1="0" x2="450" y2="400" stroke="#d4af37" stroke-width="3" opacity="0.3" />
-
-                <line x1="0" y1="0" x2="600" y2="400" stroke="#d4af37" stroke-width="2" stroke-dasharray="5,5" opacity="0.4" />
+                <line x1="150" y1="0" x2="150" y2="400" stroke="currentColor" stroke-width="3" opacity="0.1" />
+                <line x1="300" y1="0" x2="300" y2="400" stroke="currentColor" stroke-width="3" opacity="0.1" />
+                <line x1="450" y1="0" x2="450" y2="400" stroke="currentColor" stroke-width="3" opacity="0.1" />
                 
-                <rect x="40" y="30" width="100" height="40" rx="4" fill="#ead9ba" opacity="0.8"/>
-                <text x="90" y="54" font-family="'Open Sans', sans-serif" font-size="10" fill="#7a6229" text-anchor="middle">Morrison Park</text>
-                
-                <rect x="330" y="120" width="100" height="50" rx="4" fill="#ead9ba" opacity="0.8"/>
-                <text x="380" y="149" font-family="'Open Sans', sans-serif" font-size="10" fill="#7a6229" text-anchor="middle">Central Block</text>
-
-                <text x="20" y="90" font-family="'Open Sans', sans-serif" font-size="10" fill="#888">SW Morrison St</text>
-                <text x="165" y="50" font-family="'Open Sans', sans-serif" font-size="10" fill="#888" transform="rotate(90 165 50)">SW 4th Ave</text>
-                
-                <circle cx="300" cy="200" r="40" fill="#a30000" opacity="0.1" />
-                <circle cx="300" cy="200" r="20" fill="#a30000" opacity="0.2" />
-                
-                <g transform="translate(285, 160)">
-                  <path d="M15 0C6.7 0 0 6.7 0 15c0 10.5 15 25 15 25s15-14.5 15-25C30 6.7 23.3 0 15 0zm0 21c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6-2.7 6-6 6z" fill="#a30000" />
-                  <circle cx="15" cy="15" r="5" fill="#d4af37" />
-                </g>
-                
-                <rect x="200" y="245" width="200" height="36" rx="6" fill="#1a1410" stroke="#d4af37" stroke-width="1.5" />
-                <text x="300" y="267" font-family="'Merriweather', serif" font-size="12" font-weight="bold" fill="#f8f0e3" text-anchor="middle">THE LITERARY NEXUS</text>
+                <rect x="200" y="245" width="200" height="36" rx="6" fill="var(--brand-primary)" />
+                <text x="300" y="267" font-family="inherit" font-size="12" font-weight="bold" fill="white" text-anchor="middle">THE LITERARY NEXUS</text>
               </svg>
               <div class="map-overlay">
                 <div class="map-overlay-content">
@@ -303,8 +367,8 @@
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                     <circle cx="12" cy="10" r="3"></circle>
                   </svg>
-                  <h3 style="color: var(--text-light); margin-bottom: 8px;">Explore Location Map</h3>
-                  <p style="color: #ddd; font-size: 0.9rem; margin-bottom: 0;">Click to open live directions in Google Maps</p>
+                  <h3>Explore Location Map</h3>
+                  <p>Click to open live directions in Google Maps</p>
                 </div>
               </div>
             </a>
@@ -347,9 +411,9 @@
 
         <div class="footer-newsletter">
           <h4>Newsletter Updates</h4>
-          <p style="color: #999; font-size: 0.85rem;">Receive private invitations to future literary salons and special edition book releases.</p>
-          <form class="newsletter-form" onsubmit="event.preventDefault(); alert('Subscribed to Literary Nexus updates!'); this.reset();">
-            <input type="email" placeholder="Your Email Address" aria-label="Newsletter email address" class="newsletter-input" required>
+          <p>Receive private invitations to future literary salons and special edition book releases.</p>
+          <form class="newsletter-form" id="newsletter-form">
+            <input type="email" placeholder="Your Email Address" aria-label="Newsletter email address" class="newsletter-input" id="newsletter-email" required>
             <button type="submit" class="newsletter-btn" aria-label="Subscribe to newsletter">Join</button>
           </form>
         </div>
@@ -389,7 +453,7 @@
         <div class="modal-success-header">
           <div class="modal-success-icon" aria-hidden="true">✓</div>
           <h3 id="modal-success-title" class="modal-success-title">Invitation Confirmed</h3>
-          <p style="color: var(--text-dark-muted); font-size: 0.95rem; margin-top: 8px;">Your credentialed entry has been registered in the database.</p>
+          <p>Your credentialed entry has been registered in the database.</p>
         </div>
 
         <div class="modal-success-info">
@@ -409,9 +473,9 @@
             <span class="label">Location:</span>
             <span class="value" id="success-event-location"></span>
           </p>
-          <p class="ticket-tear-line" style="border-bottom: none; margin-top: 15px; padding-top: 15px; border-top: 2px dashed rgba(212,175,55,0.4);">
+          <p class="ticket-tear-line">
             <span class="label">Credential ID:</span>
-            <span class="value" id="success-reg-id" style="font-weight: 700; color: var(--brand-primary); font-family: monospace; letter-spacing: 0.05em;"></span>
+            <span class="value" id="success-reg-id"></span>
           </p>
         </div>
 
@@ -432,7 +496,13 @@
           <span class="bar thick"></span>
         </div>
 
-        <p style="font-size: 0.8rem; text-align: center; color: var(--text-dark-muted); margin-bottom: 0; margin-top: 10px;">
+        <div class="ticket-actions">
+          <button type="button" class="btn btn-gold btn-print-ticket" id="btn-print-ticket" aria-label="Print or save your confirmation ticket">
+            Print / Save Ticket
+          </button>
+        </div>
+
+        <p class="ticket-footer-text">
           Present this ticket stub at the main entry lobby. A calendar attachment file has been dispatched to your email address.
         </p>
       </div>
@@ -446,6 +516,8 @@
     </svg>
   </button>
 
-  <script src="assets/js/app.js" defer></script>
+  <div class="toast-container" id="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+  <script src="assets/js/app.js?v=6.0" defer></script>
 </body>
 </html>

@@ -1,564 +1,751 @@
-((window, document) => {
-  'use strict';
+'use strict';
 
-  const IS_DEV = ['localhost', '127.0.0.1', '10.81.49.217'].includes(window.location.hostname);
+const SPEAKERS_API    = 'https://jsonplaceholder.typicode.com/users';
+const RSVP_API        = 'https://httpbin.org/post';
+const TYPEWRITER_TEXT = 'A Signature Series Engagement';
 
-  const CONFIG = {
-    fallbackEventDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
-    endpoints: {
-      event: 'https://api.mocki.io/v2/01d0a1b0-2f3b-4c4d-9e0a-1b0c2d3e4f5a',
-      speakers: 'https://jsonplaceholder.typicode.com/users',
-      rsvp: 'https://httpbin.org/post'
-    }
-  };
+let eventDate     = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
+let eventName     = 'Signature Literary Gala';
+let eventLocation = 'Portland Grand Ballroom';
+let speakers      = [];
+let timerInterval = null;
+let lastFocused   = null;
 
-  const UI = {
-    heroTitle: document.getElementById('hero-title'),
-    heroSubtitle: document.getElementById('hero-subtitle'),
-    timer: {
-      days: document.getElementById('days-val'),
-      hours: document.getElementById('hours-val'),
-      mins: document.getElementById('minutes-val'),
-      secs: document.getElementById('seconds-val')
-    },
-    speakersGrid: document.getElementById('authors-grid'),
-    rsvp: {
-      form: document.getElementById('rsvp-form'),
-      name: document.getElementById('rsvp-name'),
-      email: document.getElementById('rsvp-email'),
-      aff: document.getElementById('rsvp-affiliation'),
-      submitBtn: document.querySelector('#rsvp-form button[type="submit"]')
-    },
-    venue: {
-      name: document.getElementById('venue-name'),
-      addr: document.getElementById('venue-address')
-    },
-    modals: {
-      profile: document.getElementById('author-modal'),
-      success: document.getElementById('success-modal')
-    },
-    backToTop: document.getElementById('back-to-top'),
-    header: document.querySelector('.site-header')
-  };
+document.addEventListener('DOMContentLoaded', init);
 
-  const state = {
-    eventName: 'Signature Literary Series',
-    eventDate: null,
-    eventLocation: 'Portland Grand Ballroom',
-    speakers: [],
-    lastActiveElement: null // track for focus return on modal close
-  };
+function init() {
+  fetchEventData();
+  fetchSpeakers();
+  setupScrollEffects();
+  setupMobileNav();
+  setupDarkMode();
+  setupScheduleFilter();
+  startTypewriter();
+  updateSeatsDisplay();
+  spawnParticles();
+  trackCursor();
+  animateStats();
+  setupListeners();
+}
 
-  async function loadEventMetadata() {
-    try {
-      if (IS_DEV) console.info('[Platform] Contacting metadata server...');
+// ─── Event metadata ───────────────────────────────────────────────────────
 
-      const res = await fetch(CONFIG.endpoints.event);
-      if (!res.ok) throw new Error(`Server returned status code ${res.status}`);
+async function fetchEventData() {
+  try {
+    const res = await fetch('https://api.mocki.io/v2/01d0a1b0-2f3b-4c4d-9e0a-1b0c2d3e4f5a');
+    if (!res.ok) throw new Error();
 
-      const payload = await res.json();
-      state.eventName = payload.eventName || 'Literary Nexus Gala';
-      state.eventLocation = payload.location || 'Portland Grand Ballroom';
+    const data = await res.json();
+    eventName     = data.eventName || eventName;
+    eventLocation = data.location  || eventLocation;
 
-      let parsedTarget = new Date(payload.eventDate);
-      const currentTime = new Date();
-      // Shift date forward to prevent expired timer in local preview
-      if (isNaN(parsedTarget.getTime()) || parsedTarget < currentTime) {
-        const currentYear = currentTime.getFullYear();
-        parsedTarget = new Date(`${currentYear}-12-31T19:00:00Z`);
-
-        if (parsedTarget < currentTime) {
-          parsedTarget = new Date(`${currentYear + 1}-12-31T19:00:00Z`);
-        }
-      }
-      state.eventDate = parsedTarget;
-
-      syncEventDOM();
-    } catch (err) {
-      console.error('[Platform] Metadata sync failed. Initiating fallback configurations.', err);
-
-      state.eventName = 'Signature Literary Gala';
-      state.eventLocation = 'Portland Grand Ballroom';
-      state.eventDate = CONFIG.fallbackEventDate;
-      syncEventDOM();
-    }
-  }
-
-  function syncEventDOM() {
-    if (UI.heroTitle) UI.heroTitle.textContent = `The Literary Nexus Presents: ${state.eventName}`;
-    if (UI.venue.name) UI.venue.name.textContent = state.eventLocation;
-
-    startTimerLoop();
-  }
-
-  async function loadSpeakers() {
-    try {
-      const res = await fetch(CONFIG.endpoints.speakers);
-      if (!res.ok) throw new Error(`HTTP status: ${res.status}`);
-
-      const users = await res.json();
-
-      const rawData = users.slice(0, 5);
-
-      const speakerMetas = [
-        {
-          role: 'Pulitzer Prize Winning Novelist',
-          bio: 'Author of the internationally acclaimed trilogy "Chamber of Echoes". Her works explore the intersections of post-industrial history, ancestral memory, and ecological change. Iowa Writers\' Workshop alumnus.',
-          books: ['Chamber of Echoes (2022)', 'Shadows of the Willamette (2019)', 'Under the Red Ochre (2015)']
-        },
-        {
-          role: 'Poet Laureate & Essayist',
-          bio: 'A major contemporary voice in lyric poetry and cultural criticism. His collections have received the National Book Award and the Whiting Award. Contributing editor at Harper\'s Magazine.',
-          books: ['Late Transmissions: Selected Poems (2024)', 'A Taxonomy of Silences (2021)', 'Cities Built on Sand (2017)']
-        },
-        {
-          role: 'Historical Biographer',
-          bio: 'Specializes in the political and cultural figures of the early American West. Her recent biography of Abigail Scott Duniway has been praised as a definitive historical account.',
-          books: ['Pioneering the Press (2023)', 'Fever of Gold: Oregon Trail Diaries (2020)']
-        },
-        {
-          role: 'Suspense & Neo-Noir Writer',
-          bio: 'A native Portland writer whose gritty, atmospheric detective fiction is set along the misty shores of the Columbia River. Translated into fourteen languages.',
-          books: ['Fog Line (2023)', 'The St. Johns Mystery (2021)', 'Basement Drafts (2018)']
-        },
-        {
-          role: 'Speculative Fiction Visionary',
-          bio: 'Explores utopian futures and climate adaptation through a distinct sociological lens. Known for building lush, deeply researched speculative worlds.',
-          books: ['The Green Meridian (2024)', 'Calculated Rain (2022)', 'Archipelagoes (2019)']
-        }
-      ];
-
-      state.speakers = rawData.map((user, i) => {
-        const metadata = speakerMetas[i % speakerMetas.length];
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          tagline: user.company.catchPhrase,
-          expandedBio: user.company.bs,
-          role: metadata.role,
-          longBio: metadata.bio,
-          books: metadata.books,
-          avatar: `https://picsum.photos/id/${user.id}/200/200`
-        };
-      });
-
-      renderSpeakersGrid();
-    } catch (err) {
-      console.error('[Platform] Speaker sync failed. Loading static backup profiles.', err);
-      loadStaticSpeakers();
-    }
-  }
-
-  function renderSpeakersGrid() {
-    if (!UI.speakersGrid) return;
-    UI.speakersGrid.innerHTML = '';
-
-    state.speakers.forEach((sp, idx) => {
-      const card = document.createElement('article');
-      card.className = `author-card reveal ${idx === 0 ? 'keynote-card' : ''}`;
-      card.setAttribute('aria-label', `Speaker profile: ${sp.name}`);
-
-      if (idx === 0) {
-        card.innerHTML = `
-          <div class="author-img-container">
-            <img class="author-img" src="${sp.avatar}" alt="${sp.name}" loading="lazy" width="150" height="150">
-          </div>
-          <div class="author-info-container">
-            <span class="keynote-badge">Keynote Speaker</span>
-            <h3 class="author-name" style="font-size: 1.8rem; margin-bottom: 4px;">${sp.name}</h3>
-            <p class="author-role" style="font-size: 0.9rem; margin-bottom: 8px;">${sp.role}</p>
-            <p class="author-bio-snippet" style="font-size: 1.05rem;"><span class="quote-mark">&ldquo;</span>${sp.tagline}<span class="quote-mark">&rdquo;</span></p>
-            <button type="button" class="btn-author-detail" data-id="${sp.id}">
-              View Full Profile <span>&rarr;</span>
-            </button>
-          </div>
-        `;
-      } else {
-        card.innerHTML = `
-          <div class="author-img-container">
-            <img class="author-img" src="${sp.avatar}" alt="${sp.name}" loading="lazy" width="120" height="120">
-          </div>
-          <h3 class="author-name">${sp.name}</h3>
-          <p class="author-role">${sp.role}</p>
-          <p class="author-bio-snippet"><span class="quote-mark">&ldquo;</span>${sp.tagline}<span class="quote-mark">&rdquo;</span></p>
-          <button type="button" class="btn-author-detail" data-id="${sp.id}">
-            View Full Profile <span>&rarr;</span>
-          </button>
-        `;
-      }
-      UI.speakersGrid.appendChild(card);
-    });
-
-    initIntersectionObservers();
-  }
-
-  function loadStaticSpeakers() {
-    state.speakers = [
-      { id: 1, name: 'Eleanor Vance', role: 'Pulitzer Prize Winning Novelist', tagline: 'Reading spaces with modern narratives.', expandedBio: 'excavate archival fables', email: 'eleanor@literarynexus.com', longBio: 'Eleanor Vance is a novelist known for reimagining historical diaries through complex characters.', books: ['The Ivory Arch (2023)'], avatar: 'https://picsum.photos/id/64/200/200' },
-      { id: 2, name: 'Marcus Aurel', role: 'Poet Laureate & Essayist', tagline: 'Synthesized lyrical streams mapping urban changes.', expandedBio: 'harness cultural rhythms', email: 'marcus@literarynexus.com', longBio: 'Marcus Aurel writes poetry focusing on the architecture of human connection and city spaces.', books: ['Cobblestone Verses (2022)'], avatar: 'https://picsum.photos/id/91/200/200' }
-    ];
-    renderSpeakersGrid();
-  }
-
-  let timerTicker;
-
-  function startTimerLoop() {
-    if (!state.eventDate) return;
-    if (timerTicker) clearInterval(timerTicker);
-
-    const checkDate = () => {
-      const distance = state.eventDate.getTime() - Date.now();
-
-      if (distance < 0) {
-        clearInterval(timerTicker);
-        const box = document.querySelector('.countdown-container');
-        if (box) {
-          box.innerHTML = '<div class="countdown-label" style="font-size: 1.1rem; color: var(--accent-gold);">The Event Has Commenced</div>';
-        }
-        return;
-      }
-
-      const days = Math.floor(distance / 86400000);
-      const hours = Math.floor((distance % 86400000) / 3600000);
-      const mins = Math.floor((distance % 3600000) / 60000);
-      const secs = Math.floor((distance % 60000) / 1000);
-
-      if (UI.timer.days) UI.timer.days.textContent = String(days).padStart(2, '0');
-      if (UI.timer.hours) UI.timer.hours.textContent = String(hours).padStart(2, '0');
-      if (UI.timer.mins) UI.timer.mins.textContent = String(mins).padStart(2, '0');
-      if (UI.timer.secs) UI.timer.secs.textContent = String(secs).padStart(2, '0');
-    };
-
-    checkDate();
-    timerTicker = setInterval(checkDate, 1000);
-  }
-
-  function trapModalFocus(e, modalNode) {
-    const focusables = modalNode.querySelectorAll('button, [href], input, [tabindex="0"]');
-    if (focusables.length === 0) return;
-
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-
-    if (e.key === 'Tab') {
-      if (e.shiftKey) {
-        if (document.activeElement === first) {
-          last.focus();
-          e.preventDefault();
-        }
-      } else {
-        if (document.activeElement === last) {
-          first.focus();
-          e.preventDefault();
-        }
-      }
-    }
-  }
-
-  function toggleModal(modalNode, shouldOpen) {
-    if (shouldOpen) {
-      state.lastActiveElement = document.activeElement;
-      modalNode.classList.add('active');
-      modalNode.setAttribute('aria-hidden', 'false');
-      document.body.style.overflow = 'hidden';
-
-      const closeTrigger = modalNode.querySelector('.modal-close-btn');
-      if (closeTrigger) closeTrigger.focus();
+    const parsed = new Date(data.eventDate);
+    if (!isNaN(parsed) && parsed > new Date()) {
+      eventDate = parsed;
     } else {
-      modalNode.classList.remove('active');
-      modalNode.setAttribute('aria-hidden', 'true');
-      document.body.style.overflow = '';
-
-      if (state.lastActiveElement) {
-        state.lastActiveElement.focus();
-        state.lastActiveElement = null;
-      }
+      const y = new Date().getFullYear();
+      eventDate = new Date(`${y}-12-31T19:00:00Z`);
+      if (eventDate < new Date()) eventDate = new Date(`${y + 1}-12-31T19:00:00Z`);
     }
+  } catch {
+    // API unavailable — defaults are already set
+  } finally {
+    updatePageTitle();
+    startCountdown();
   }
+}
 
-  function handleProfileOverlay(id) {
-    const sp = state.speakers.find(s => s.id === parseInt(id, 10));
-    if (!sp) return;
+function updatePageTitle() {
+  const title = document.getElementById('hero-title');
+  const venue = document.getElementById('venue-name');
+  if (title) title.textContent = `The Literary Nexus Presents: ${eventName}`;
+  if (venue) venue.textContent = eventLocation;
+}
 
-    const imgNode = document.getElementById('modal-author-img');
-    const nameNode = document.getElementById('modal-author-name');
-    const metaNode = document.getElementById('modal-author-meta');
-    const mailNode = document.getElementById('modal-author-email');
-    const bioNode = document.getElementById('modal-author-bio');
-    const listNode = document.getElementById('modal-author-books');
+// ─── Countdown ────────────────────────────────────────────────────────────
 
-    if (imgNode) { imgNode.src = sp.avatar; imgNode.alt = sp.name; }
-    if (nameNode) nameNode.textContent = sp.name;
-    if (metaNode) metaNode.textContent = sp.role;
-    if (mailNode) { mailNode.href = `mailto:${sp.email}`; mailNode.textContent = sp.email; }
+function startCountdown() {
+  if (timerInterval) clearInterval(timerInterval);
 
-    if (bioNode) {
-      bioNode.innerHTML = `
-        <p style="font-style: italic; color: var(--accent-gold); margin-bottom: 12px;">Creative Thesis: "${sp.tagline}"</p>
-        <p style="font-weight: 600; margin-bottom: var(--spacing-sm);">Core Competence: ${sp.expandedBio}</p>
-        <p>${sp.longBio}</p>
-      `;
-    }
+  const tick = () => {
+    const diff = eventDate - Date.now();
 
-    if (listNode) {
-      listNode.innerHTML = '';
-      if (sp.books && sp.books.length > 0) {
-        const h = document.createElement('h4');
-        h.className = 'modal-author-books-title';
-        h.textContent = 'Selected Bibliography';
-        listNode.appendChild(h);
-
-        const ul = document.createElement('ul');
-        ul.className = 'modal-author-books-list';
-        sp.books.forEach(b => {
-          const li = document.createElement('li');
-          li.textContent = b;
-          ul.appendChild(li);
-        });
-        listNode.appendChild(ul);
-      }
-    }
-
-    toggleModal(UI.modals.profile, true);
-  }
-
-  function checkInput(field) {
-    const grp = field.closest('.form-group');
-    const err = grp.querySelector('.error-message');
-    let ok = true;
-    let msg = '';
-
-    if (field.hasAttribute('required') && !field.value.trim()) {
-      ok = false;
-      msg = 'This credential is required.';
-    } else if (field.type === 'email' && field.value.trim()) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(field.value.trim())) {
-        ok = false;
-        msg = 'Invalid professional email format.';
-      }
-    }
-
-    if (!ok) {
-      field.classList.add('invalid');
-      field.setAttribute('aria-invalid', 'true');
-      if (err) { err.textContent = msg; err.style.display = 'block'; }
-    } else {
-      field.classList.remove('invalid');
-      field.setAttribute('aria-invalid', 'false');
-      if (err) err.style.display = 'none';
-    }
-
-    return ok;
-  }
-
-  async function transmitRsvp(e) {
-    e.preventDefault();
-
-    const nameOk = checkInput(UI.rsvp.name);
-    const emailOk = checkInput(UI.rsvp.email);
-
-    if (!nameOk || !emailOk) {
-      const target = !nameOk ? UI.rsvp.name : UI.rsvp.email;
-      target.focus();
+    if (diff <= 0) {
+      clearInterval(timerInterval);
+      const box = document.querySelector('.countdown-container');
+      if (box) box.innerHTML = '<span class="countdown-label">The Event Has Commenced</span>';
       return;
     }
 
-    const initialText = UI.rsvp.submitBtn.textContent;
-    UI.rsvp.submitBtn.disabled = true;
-    UI.rsvp.submitBtn.textContent = 'Encrypting Credentials...';
+    setDigit('days-val',    Math.floor(diff / 86400000));
+    setDigit('hours-val',   Math.floor((diff % 86400000) / 3600000));
+    setDigit('minutes-val', Math.floor((diff % 3600000)  / 60000));
+    setDigit('seconds-val', Math.floor((diff % 60000)    / 1000));
+  };
 
-    const vals = {
-      name: UI.rsvp.name.value.trim(),
-      email: UI.rsvp.email.value.trim(),
-      affiliation: UI.rsvp.aff.value.trim() || 'Independent Scholar'
-    };
+  tick();
+  timerInterval = setInterval(tick, 1000);
+}
 
-    try {
-      const res = await fetch(CONFIG.endpoints.rsvp, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...vals, event: state.eventName, loc: state.eventLocation })
-      });
+// plays a 3D flip when the digit changes
+function setDigit(id, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const text = String(value).padStart(2, '0');
+  if (el.textContent === text) return;
 
-      if (!res.ok) throw new Error(`Server returned code ${res.status}`);
+  el.classList.remove('flipping');
+  void el.offsetWidth; // force reflow so animation replays
+  el.textContent = text;
+  el.classList.add('flipping');
+  el.addEventListener('animationend', () => el.classList.remove('flipping'), { once: true });
+}
 
-      const debugResult = await res.json();
-      if (IS_DEV) console.info('[RSVP] Transmission payload captured:', debugResult);
+// ─── Speakers ─────────────────────────────────────────────────────────────
 
-      const confirmNum = Math.floor(100000 + Math.random() * 900000);
+const SPEAKER_DETAILS = [
+  {
+    role:  'Pulitzer Prize Winning Novelist',
+    bio:   'Author of the internationally acclaimed trilogy "Chamber of Echoes". Her works explore post-industrial history, ancestral memory, and ecological change. Iowa Writers\' Workshop alumnus.',
+    books: ['Chamber of Echoes (2022)', 'Shadows of the Willamette (2019)', 'Under the Red Ochre (2015)']
+  },
+  {
+    role:  'Poet Laureate & Essayist',
+    bio:   'A major voice in lyric poetry and cultural criticism. His collections received the National Book Award and the Whiting Award. Contributing editor at Harper\'s Magazine.',
+    books: ['Late Transmissions: Selected Poems (2024)', 'A Taxonomy of Silences (2021)', 'Cities Built on Sand (2017)']
+  },
+  {
+    role:  'Historical Biographer',
+    bio:   'Specialises in political and cultural figures of the early American West. Her biography of Abigail Scott Duniway has been praised as a definitive historical account.',
+    books: ['Pioneering the Press (2023)', 'Fever of Gold: Oregon Trail Diaries (2020)']
+  },
+  {
+    role:  'Suspense & Neo-Noir Writer',
+    bio:   'A Portland native whose atmospheric detective fiction is set along the Columbia River. Translated into fourteen languages.',
+    books: ['Fog Line (2023)', 'The St. Johns Mystery (2021)', 'Basement Drafts (2018)']
+  },
+  {
+    role:  'Speculative Fiction Visionary',
+    bio:   'Explores utopian futures and climate adaptation through a sociological lens. Known for building deeply researched speculative worlds.',
+    books: ['The Green Meridian (2024)', 'Calculated Rain (2022)', 'Archipelagoes (2019)']
+  }
+];
 
-      document.getElementById('success-attendee-name').textContent = vals.name;
-      document.getElementById('success-attendee-email').textContent = vals.email;
-      document.getElementById('success-attendee-aff').textContent = vals.affiliation;
-      document.getElementById('success-reg-id').textContent = `LN-${confirmNum}`;
-      document.getElementById('success-event-location').textContent = state.eventLocation;
+async function fetchSpeakers() {
+  showSkeletons(5);
 
-      UI.rsvp.form.reset();
-      toggleModal(UI.modals.success, true);
-    } catch (err) {
-      console.error('[RSVP] Transmission error.', err);
-      alert('Unable to secure reservation slot. Please verify your connection and try again.');
-    } finally {
-      UI.rsvp.submitBtn.disabled = false;
-      UI.rsvp.submitBtn.textContent = initialText;
-    }
+  try {
+    const res   = await fetch(SPEAKERS_API);
+    if (!res.ok) throw new Error();
+    const users = await res.json();
+
+    speakers = users.slice(0, 5).map((user, i) => ({
+      id:        user.id,
+      name:      user.name,
+      email:     user.email,
+      tagline:   user.company.catchPhrase,
+      workStyle: user.company.bs,
+      role:      SPEAKER_DETAILS[i].role,
+      bio:       SPEAKER_DETAILS[i].bio,
+      books:     SPEAKER_DETAILS[i].books,
+      photo:     `https://picsum.photos/id/${user.id}/200/200`
+    }));
+  } catch {
+    // static fallback so the page never looks broken
+    speakers = [
+      {
+        id: 1, name: 'Eleanor Vance', role: 'Pulitzer Prize Winning Novelist',
+        tagline: 'Reading spaces with modern narratives.', workStyle: 'excavate archival fables',
+        email: 'eleanor@literarynexus.com',
+        bio:   'Eleanor Vance is a novelist known for reimagining historical diaries through complex characters.',
+        books: ['The Ivory Arch (2023)'], photo: 'https://picsum.photos/id/64/200/200'
+      },
+      {
+        id: 2, name: 'Marcus Aurel', role: 'Poet Laureate & Essayist',
+        tagline: 'Synthesized lyrical streams mapping urban changes.', workStyle: 'harness cultural rhythms',
+        email: 'marcus@literarynexus.com',
+        bio:   'Marcus Aurel writes poetry on the architecture of human connection and city spaces.',
+        books: ['Cobblestone Verses (2022)'], photo: 'https://picsum.photos/id/91/200/200'
+      }
+    ];
   }
 
-  function compileICSAttachment(title, desc, hr, min) {
-    const day = state.eventDate || new Date();
+  renderSpeakers();
+}
 
-    const start = new Date(day);
-    start.setHours(hr, min, 0, 0);
-    const end = new Date(start.getTime() + 60 * 60 * 1000);
+function showSkeletons(count) {
+  const grid = document.getElementById('authors-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
 
-    const pad = (d) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-
-    const raw = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//The Literary Nexus//EN',
-      'BEGIN:VEVENT',
-      `UID:${Date.now()}@literarynexus.com`,
-      `DTSTAMP:${pad(new Date())}`,
-      `DTSTART:${pad(start)}`,
-      `DTEND:${pad(end)}`,
-      `SUMMARY:The Literary Nexus: ${title}`,
-      `DESCRIPTION:${desc.replace(/,/g, '\\,')}`,
-      'LOCATION:Portland Grand Ballroom\\, 421 SW Morrison St\\, Portland\\, OR 97204',
-      'END:VEVENT',
-      'END:VCALENDAR'
-    ].join('\r\n');
-
-    const file = new Blob([raw], { type: 'text/calendar;charset=utf-8;' });
-    const trigger = document.createElement('a');
-    trigger.href = URL.createObjectURL(file);
-    trigger.setAttribute('download', `${title.replace(/\s+/g, '_')}.ics`);
-    document.body.appendChild(trigger);
-    trigger.click();
-    document.body.removeChild(trigger);
+  for (let i = 0; i < count; i++) {
+    const card = document.createElement('div');
+    card.className = 'skeleton-card';
+    card.setAttribute('aria-hidden', 'true');
+    card.innerHTML = `
+      <div class="skeleton-block skeleton-avatar"></div>
+      <div class="skeleton-block skeleton-title"></div>
+      <div class="skeleton-block skeleton-role"></div>
+      <div class="skeleton-block skeleton-line"></div>
+      <div class="skeleton-block skeleton-line short"></div>
+      <div class="skeleton-block skeleton-btn"></div>
+    `;
+    grid.appendChild(card);
   }
+}
 
-  function initIntersectionObservers() {
-    const reveals = document.querySelectorAll('.reveal, .reveal-stagger');
+function renderSpeakers() {
+  const grid = document.getElementById('authors-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
 
-    const obs = new IntersectionObserver((entries) => {
-      entries.forEach(e => {
-        if (e.isIntersecting) {
-          e.target.classList.add('active');
-          if (e.target.classList.contains('timeline-item')) {
-            e.target.classList.add('active');
-          }
-          obs.unobserve(e.target);
-        }
-      });
-    }, { threshold: 0.15 });
+  speakers.forEach((sp, i) => {
+    const card = document.createElement('article');
+    card.className = `author-card reveal${i === 0 ? ' keynote-card' : ''}`;
+    card.setAttribute('aria-label', `Speaker profile: ${sp.name}`);
 
-    reveals.forEach(r => obs.observe(r));
-  }
-
-  function bindWindowScrolls() {
-
-    const bg = document.querySelector('.hero-bg');
-
-    window.addEventListener('scroll', () => {
-      const top = window.pageYOffset;
-
-      if (bg) bg.style.transform = `translateY(${top * 0.45}px)`;
-
-      if (UI.header) {
-        if (top > 50) {
-          UI.header.classList.add('scrolled');
-        } else {
-          UI.header.classList.remove('scrolled');
-        }
-      }
-
-      if (UI.backToTop) {
-        if (top > 300) {
-          UI.backToTop.classList.add('visible');
-        } else {
-          UI.backToTop.classList.remove('visible');
-        }
-      }
-    }, { passive: true });
-  }
-
-  function bindUIActions() {
-
-    document.body.addEventListener('click', (e) => {
-      const detailBtn = e.target.closest('.btn-author-detail');
-      if (detailBtn) {
-        handleProfileOverlay(detailBtn.getAttribute('data-id'));
-        return;
-      }
-
-      const closeBtn = e.target.closest('.modal-close-btn');
-      if (closeBtn) {
-        closeModal();
-        return;
-      }
-
-      if (e.target.classList.contains('modal-overlay')) {
-        closeModal();
-      }
-    });
-
-    function closeModal() {
-      const open = document.querySelector('.modal-overlay.active');
-      if (open) toggleModal(open, false);
-    }
-
-    document.addEventListener('keydown', (e) => {
-      const open = document.querySelector('.modal-overlay.active');
-      if (!open) return;
-
-      if (e.key === 'Escape') {
-        closeModal();
-        e.preventDefault();
-      }
-
-      if (e.key === 'Tab') {
-        trapModalFocus(e, open);
-      }
-    });
-
-    if (UI.rsvp.name) UI.rsvp.name.addEventListener('blur', () => checkInput(UI.rsvp.name));
-    if (UI.rsvp.email) UI.rsvp.email.addEventListener('blur', () => checkInput(UI.rsvp.email));
-
-    if (UI.rsvp.form) UI.rsvp.form.addEventListener('submit', transmitRsvp);
-
-    if (UI.backToTop) {
-      UI.backToTop.addEventListener('click', () => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
+    if (i === 0) {
+      card.innerHTML = `
+        <div class="author-img-container">
+          <img class="author-img" src="${sp.photo}" alt="${sp.name}" loading="lazy" width="150" height="150">
+        </div>
+        <div class="author-info-container">
+          <span class="keynote-badge">Keynote Speaker</span>
+          <h3 class="author-name">${sp.name}</h3>
+          <p class="author-role">${sp.role}</p>
+          <p class="author-bio-snippet"><span class="quote-mark">&ldquo;</span>${sp.tagline}<span class="quote-mark">&rdquo;</span></p>
+          <button type="button" class="btn-author-detail" data-id="${sp.id}">View Full Profile <span>&rarr;</span></button>
+        </div>
+      `;
+    } else {
+      card.innerHTML = `
+        <div class="author-img-container">
+          <img class="author-img" src="${sp.photo}" alt="${sp.name}" loading="lazy" width="120" height="120">
+        </div>
+        <h3 class="author-name">${sp.name}</h3>
+        <p class="author-role">${sp.role}</p>
+        <p class="author-bio-snippet"><span class="quote-mark">&ldquo;</span>${sp.tagline}<span class="quote-mark">&rdquo;</span></p>
+        <button type="button" class="btn-author-detail" data-id="${sp.id}">View Full Profile <span>&rarr;</span></button>
+      `;
     }
 
-    document.addEventListener('click', (e) => {
-      const calBtn = e.target.closest('.btn-calendar');
-      if (!calBtn) return;
+    grid.appendChild(card);
+  });
 
-      const title = calBtn.getAttribute('data-title');
-      const hr = parseInt(calBtn.getAttribute('data-offset-hour'), 10);
-      const min = parseInt(calBtn.getAttribute('data-offset-min'), 10);
-      const desc = calBtn.closest('.timeline-content').querySelector('.timeline-desc').textContent;
+  setupRevealObserver();
+}
 
-      compileICSAttachment(title, desc, hr, min);
+// ─── Author modal ─────────────────────────────────────────────────────────
+
+function openAuthorModal(id) {
+  const sp = speakers.find(s => s.id === parseInt(id));
+  if (!sp) return;
+
+  document.getElementById('modal-author-img').src     = sp.photo;
+  document.getElementById('modal-author-img').alt     = sp.name;
+  document.getElementById('modal-author-name').textContent = sp.name;
+  document.getElementById('modal-author-meta').textContent = sp.role;
+
+  const emailEl = document.getElementById('modal-author-email');
+  emailEl.href        = `mailto:${sp.email}`;
+  emailEl.textContent = sp.email;
+
+  document.getElementById('modal-author-bio').innerHTML = `
+    <p style="font-style:italic;color:var(--accent-gold);margin-bottom:12px;">"${sp.tagline}"</p>
+    <p style="font-weight:600;margin-bottom:var(--spacing-sm);">Focus: ${sp.workStyle}</p>
+    <p>${sp.bio}</p>
+  `;
+
+  const listEl = document.getElementById('modal-author-books');
+  listEl.innerHTML = '';
+
+  if (sp.books?.length) {
+    const heading = document.createElement('h4');
+    heading.className   = 'modal-author-books-title';
+    heading.textContent = 'Selected Bibliography';
+
+    const ul = document.createElement('ul');
+    ul.className = 'modal-author-books-list';
+    sp.books.forEach(b => {
+      const li = document.createElement('li');
+      li.textContent = b;
+      ul.appendChild(li);
     });
+
+    listEl.appendChild(heading);
+    listEl.appendChild(ul);
   }
 
-  function bootstrap() {
-    loadEventMetadata();
-    loadSpeakers();
-    bindWindowScrolls();
-    bindUIActions();
+  openModal(document.getElementById('author-modal'));
+}
+
+// ─── Modals ───────────────────────────────────────────────────────────────
+
+function openModal(el) {
+  lastFocused = document.activeElement;
+  el.classList.add('active');
+  el.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+  el.querySelector('.modal-close-btn')?.focus();
+}
+
+function closeModal(el) {
+  el.classList.remove('active');
+  el.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+  lastFocused?.focus();
+  lastFocused = null;
+}
+
+function closeAllModals() {
+  document.querySelectorAll('.modal-overlay.active').forEach(closeModal);
+}
+
+// ─── RSVP form ────────────────────────────────────────────────────────────
+
+async function submitRSVP(e) {
+  e.preventDefault();
+
+  const nameField = document.getElementById('rsvp-name');
+  const emailField = document.getElementById('rsvp-email');
+  const affField   = document.getElementById('rsvp-affiliation');
+  const submitBtn  = e.target.querySelector('button[type="submit"]');
+
+  // clear any previous error banner
+  e.target.querySelector('.form-error-banner')?.remove();
+
+  const nameOk  = validateField(nameField);
+  const emailOk = validateField(emailField);
+  if (!nameOk || !emailOk) {
+    (!nameOk ? nameField : emailField).focus();
+    return;
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootstrap);
-  } else {
-    bootstrap();
+  const originalLabel = submitBtn.textContent;
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Confirming...';
+
+  const payload = {
+    name:        nameField.value.trim(),
+    email:       emailField.value.trim(),
+    affiliation: affField.value.trim() || 'Independent Scholar',
+    event:       eventName,
+    location:    eventLocation
+  };
+
+  try {
+    const res = await fetch(RSVP_API, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error();
+
+    const ticketId = `LN-${Math.floor(100000 + Math.random() * 900000)}`;
+    document.getElementById('success-attendee-name').textContent  = payload.name;
+    document.getElementById('success-attendee-email').textContent = payload.email;
+    document.getElementById('success-attendee-aff').textContent   = payload.affiliation;
+    document.getElementById('success-reg-id').textContent         = ticketId;
+    document.getElementById('success-event-location').textContent = eventLocation;
+
+    e.target.reset();
+    fireConfetti();
+    openModal(document.getElementById('success-modal'));
+
+  } catch {
+    const banner = document.createElement('div');
+    banner.className   = 'form-error-banner';
+    banner.textContent = 'Something went wrong. Please check your connection and try again.';
+    e.target.prepend(banner);
+    banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } finally {
+    submitBtn.disabled    = false;
+    submitBtn.textContent = originalLabel;
+  }
+}
+
+function validateField(field) {
+  const group = field.closest('.form-group');
+  const err   = group?.querySelector('.error-message');
+  let msg = '';
+
+  if (field.required && !field.value.trim()) {
+    msg = 'This field is required.';
+  } else if (field.type === 'email' && field.value.trim()) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(field.value)) msg = 'Enter a valid email address.';
   }
 
-})(window, document);
+  field.classList.toggle('invalid', !!msg);
+  field.setAttribute('aria-invalid', String(!!msg));
+  if (err) { err.textContent = msg; err.style.display = msg ? 'block' : 'none'; }
+  return !msg;
+}
+
+// ─── Calendar (.ics) download ─────────────────────────────────────────────
+
+function downloadICS(title, desc, hour, min) {
+  const base  = eventDate || new Date();
+  const start = new Date(base);
+  start.setHours(hour, min, 0, 0);
+  const end = new Date(start.getTime() + 60 * 60 * 1000);
+  const fmt = d => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+  const ics = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Literary Nexus//EN',
+    'BEGIN:VEVENT',
+    `UID:${Date.now()}@literarynexus.com`,
+    `DTSTAMP:${fmt(new Date())}`,
+    `DTSTART:${fmt(start)}`,
+    `DTEND:${fmt(end)}`,
+    `SUMMARY:Literary Nexus: ${title}`,
+    `DESCRIPTION:${desc.replace(/,/g, '\\,')}`,
+    'LOCATION:Portland Grand Ballroom\\, 421 SW Morrison St\\, Portland OR',
+    'END:VEVENT', 'END:VCALENDAR'
+  ].join('\r\n');
+
+  const a  = document.createElement('a');
+  a.href   = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
+  a.download = `${title.replace(/\s+/g, '_')}.ics`;
+  a.click();
+  a.remove();
+}
+
+// ─── Scroll & reveal ──────────────────────────────────────────────────────
+
+function setupScrollEffects() {
+  const heroBg = document.querySelector('.hero-bg');
+  const header  = document.querySelector('.site-header');
+  const backTop = document.getElementById('back-to-top');
+  const progBar = document.getElementById('reading-progress');
+
+  window.addEventListener('scroll', () => {
+    const y = window.scrollY;
+
+    if (heroBg) heroBg.style.transform = `translateY(${y * 0.45}px)`;
+    header?.classList.toggle('scrolled', y > 50);
+    backTop?.classList.toggle('visible', y > 300);
+
+    if (progBar) {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      progBar.style.width = max > 0 ? `${(y / max) * 100}%` : '0%';
+    }
+  }, { passive: true });
+}
+
+function setupRevealObserver() {
+  const revealObs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('active'); revealObs.unobserve(e.target); }
+    });
+  }, { threshold: 0.15 });
+
+  document.querySelectorAll('.reveal, .reveal-stagger').forEach(el => revealObs.observe(el));
+
+  // scrollspy
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks  = document.querySelectorAll('.site-nav a[href^="#"]');
+
+  const spyObs = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(link => {
+          link.classList.toggle('active', link.getAttribute('href') === `#${entry.target.id}`);
+        });
+      }
+    });
+  }, { rootMargin: '-20% 0px -60% 0px' });
+
+  sections.forEach(s => spyObs.observe(s));
+}
+
+// ─── Mobile nav ───────────────────────────────────────────────────────────
+
+function setupMobileNav() {
+  const hamburger = document.getElementById('hamburger-btn');
+  const overlay   = document.getElementById('mobile-nav-overlay');
+  const closeBtn  = document.getElementById('mobile-nav-close');
+  if (!hamburger || !overlay) return;
+
+  const openNav = () => {
+    hamburger.classList.add('active');
+    hamburger.setAttribute('aria-expanded', 'true');
+    overlay.classList.add('active');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    closeBtn?.focus();
+  };
+
+  const closeNav = () => {
+    hamburger.classList.remove('active');
+    hamburger.setAttribute('aria-expanded', 'false');
+    overlay.classList.remove('active');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    hamburger.focus();
+  };
+
+  hamburger.addEventListener('click', openNav);
+  closeBtn?.addEventListener('click', closeNav);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeNav(); });
+  overlay.querySelectorAll('a').forEach(a => a.addEventListener('click', closeNav));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && overlay.classList.contains('active')) closeNav();
+  });
+}
+
+// ─── Dark mode ────────────────────────────────────────────────────────────
+
+function setupDarkMode() {
+  const btn = document.getElementById('dark-mode-toggle');
+  if (!btn) return;
+
+  const savedIcon = btn.innerHTML;
+  const sunIcon   = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+
+  const apply = isDark => {
+    document.body.classList.toggle('dark-mode', isDark);
+    btn.innerHTML = isDark ? sunIcon : savedIcon;
+    btn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+  };
+
+  apply(localStorage.getItem('darkMode') === 'true');
+
+  btn.addEventListener('click', () => {
+    const next = !document.body.classList.contains('dark-mode');
+    apply(next);
+    localStorage.setItem('darkMode', next);
+  });
+}
+
+// ─── Schedule filter ──────────────────────────────────────────────────────
+
+function setupScheduleFilter() {
+  const buttons = document.querySelectorAll('.filter-btn');
+  const items   = document.querySelectorAll('.timeline-item[data-session]');
+  if (!buttons.length) return;
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      buttons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const filter = btn.dataset.filter;
+      items.forEach(item => {
+        item.classList.toggle('filtered-out', filter !== 'all' && item.dataset.session !== filter);
+      });
+    });
+  });
+}
+
+// ─── Typewriter ───────────────────────────────────────────────────────────
+
+function startTypewriter() {
+  const el = document.getElementById('hero-subtitle');
+  if (!el) return;
+
+  el.textContent = '';
+  el.classList.add('typewriter-active');
+
+  let i = 0;
+  const interval = setInterval(() => {
+    el.textContent += TYPEWRITER_TEXT[i++];
+    if (i >= TYPEWRITER_TEXT.length) {
+      clearInterval(interval);
+      setTimeout(() => el.classList.remove('typewriter-active'), 3000);
+    }
+  }, 65);
+}
+
+// ─── Seats badge ──────────────────────────────────────────────────────────
+
+function updateSeatsDisplay() {
+  const el = document.getElementById('seats-count');
+  if (!el) return;
+  const daysSinceJan = Math.floor((Date.now() - new Date('2026-01-01').getTime()) / 86400000);
+  el.textContent = Math.max(3, 47 - (daysSinceJan % 44));
+}
+
+// ─── Hero particles ───────────────────────────────────────────────────────
+
+function spawnParticles() {
+  const container = document.getElementById('hero-particles');
+  if (!container || window.innerWidth < 768) return;
+
+  for (let i = 0; i < 22; i++) {
+    const dot  = document.createElement('span');
+    const size = 2 + Math.random() * 4;
+    dot.className = 'hero-particle';
+    dot.style.cssText = `
+      width:${size}px; height:${size}px;
+      left:${Math.random() * 100}%;
+      top:${Math.random() * 100}%;
+      --p-opacity:${(0.08 + Math.random() * 0.35).toFixed(2)};
+      animation-duration:${(5 + Math.random() * 8).toFixed(1)}s;
+      animation-delay:${(Math.random() * -10).toFixed(1)}s
+    `;
+    container.appendChild(dot);
+  }
+}
+
+// ─── Cursor spotlight ─────────────────────────────────────────────────────
+
+function trackCursor() {
+  // skip on touch-only devices
+  if (window.matchMedia('(hover: none)').matches) return;
+
+  document.addEventListener('mousemove', e => {
+    document.documentElement.style.setProperty('--cursor-x', e.clientX + 'px');
+    document.documentElement.style.setProperty('--cursor-y', e.clientY + 'px');
+  }, { passive: true });
+}
+
+// ─── Stat counters ────────────────────────────────────────────────────────
+
+function animateStats() {
+  const nums = document.querySelectorAll('.stat-number[data-target]');
+  if (!nums.length) return;
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      observer.unobserve(entry.target);
+
+      const target = parseInt(entry.target.dataset.target);
+      const t0     = performance.now();
+
+      const step = now => {
+        const p = Math.min((now - t0) / 1200, 1);
+        entry.target.textContent = Math.floor((1 - Math.pow(1 - p, 3)) * target);
+        if (p < 1) requestAnimationFrame(step);
+        else entry.target.textContent = target;
+      };
+
+      requestAnimationFrame(step);
+    });
+  }, { threshold: 0.5 });
+
+  nums.forEach(n => observer.observe(n));
+}
+
+// ─── Confetti ─────────────────────────────────────────────────────────────
+
+function fireConfetti() {
+  const box    = document.createElement('div');
+  box.className = 'confetti-container';
+  document.body.appendChild(box);
+
+  const colors = ['#A30000', '#D4AF37', '#F8F0E3', '#7a0000', '#bfa032', '#cc3333', '#e8c84a'];
+
+  for (let i = 0; i < 85; i++) {
+    const dot  = document.createElement('span');
+    const size = 4 + Math.random() * 9;
+    dot.className = 'confetti-piece';
+    dot.style.cssText = `
+      left:${Math.random() * 100}%;
+      width:${size}px;
+      height:${(size * (0.4 + Math.random() * 0.8)).toFixed(1)}px;
+      background:${colors[Math.floor(Math.random() * colors.length)]};
+      border-radius:${Math.random() > 0.45 ? '50%' : '2px'};
+      animation-delay:${(Math.random() * 0.9).toFixed(2)}s;
+      animation-duration:${(2.2 + Math.random() * 2).toFixed(1)}s
+    `;
+    box.appendChild(dot);
+  }
+
+  setTimeout(() => box.remove(), 5500);
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────
+
+function showToast(msg, type = 'success') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className   = `toast ${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add('exiting');
+    toast.addEventListener('animationend', () => toast.remove(), { once: true });
+  }, 3600);
+}
+
+// ─── Focus trap (for modals) ──────────────────────────────────────────────
+
+function trapFocus(e, modal) {
+  const focusable = modal.querySelectorAll('button, [href], input, [tabindex="0"]');
+  if (!focusable.length) return;
+
+  const first = focusable[0];
+  const last  = focusable[focusable.length - 1];
+
+  if (e.shiftKey && document.activeElement === first) {
+    last.focus(); e.preventDefault();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    first.focus(); e.preventDefault();
+  }
+}
+
+// ─── Event listeners ──────────────────────────────────────────────────────
+
+function setupListeners() {
+  // author cards → open profile modal
+  document.getElementById('authors-grid')?.addEventListener('click', e => {
+    const btn = e.target.closest('.btn-author-detail');
+    if (btn) openAuthorModal(btn.dataset.id);
+  });
+
+  // close modals (close button or backdrop click)
+  document.body.addEventListener('click', e => {
+    if (e.target.closest('.modal-close-btn') || e.target.classList.contains('modal-overlay')) {
+      closeAllModals();
+    }
+  });
+
+  // Escape key + tab focus trap
+  document.addEventListener('keydown', e => {
+    const open = document.querySelector('.modal-overlay.active');
+    if (!open) return;
+    if (e.key === 'Escape') closeAllModals();
+    if (e.key === 'Tab')    trapFocus(e, open);
+  });
+
+  // RSVP
+  document.getElementById('rsvp-form')?.addEventListener('submit', submitRSVP);
+  ['rsvp-name', 'rsvp-email'].forEach(id => {
+    document.getElementById(id)?.addEventListener('blur', e => validateField(e.target));
+  });
+
+  // back to top
+  document.getElementById('back-to-top')?.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // Add to Calendar
+  document.querySelector('.timeline-container')?.addEventListener('click', e => {
+    const btn = e.target.closest('.btn-calendar');
+    if (!btn) return;
+    const desc = btn.closest('.timeline-content')?.querySelector('.timeline-desc')?.textContent || '';
+    downloadICS(btn.dataset.title, desc, +btn.dataset.offsetHour, +btn.dataset.offsetMin);
+  });
+
+  // newsletter — replace form with confirmation message
+  document.getElementById('newsletter-form')?.addEventListener('submit', e => {
+    e.preventDefault();
+    const input = document.getElementById('newsletter-email');
+    if (!input?.value.trim()) return;
+
+    const msg = document.createElement('p');
+    msg.className = 'newsletter-success';
+    msg.innerHTML = `✦ Subscribed! <em>${input.value.trim()}</em> will receive exclusive invitations.`;
+    e.target.replaceWith(msg);
+  });
+
+  // print ticket
+  document.getElementById('btn-print-ticket')?.addEventListener('click', () => window.print());
+
+  // kick off reveal animations now that listeners are ready
+  setupRevealObserver();
+}
