@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600;1,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600;1,700&display=swap');
 
 :root {
 
@@ -264,16 +264,39 @@ a:hover {
 
 .brand-logo {
   font-family: var(--font-heading);
-  color: var(--text-light);
-  font-size: 1.5rem;
-  font-weight: 900;
-  letter-spacing: 0.05em;
+  text-decoration: none;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  flex-shrink: 0;
 }
-.brand-logo span {
+.logo-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.logo-main {
+  color: var(--text-light);
+  font-size: 1.25rem;
+  font-weight: 400; /* Lighter weight for elegant contrast */
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: color 0.3s ease;
+}
+.logo-sub {
   color: var(--accent-gold);
+  font-size: 1.25rem;
+  font-weight: 800; /* Bold gold weight */
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: color 0.3s ease;
+}
+.brand-logo:hover .logo-main {
+  color: var(--accent-gold);
+}
+.brand-logo:hover .logo-sub {
+  color: var(--text-light);
 }
 
 .site-nav ul {
@@ -311,8 +334,8 @@ a:hover {
 .hero {
   position: relative;
   min-height: 100vh;
-  padding-top: 175px;
-  padding-bottom: 100px;
+  padding-top: 130px;
+  padding-bottom: 80px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -359,6 +382,10 @@ a:hover {
 .hero h1 {
   color: var(--text-light);
   text-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  font-size: clamp(1.65rem, 4.5vw, 3rem);
+  line-height: 1.2;
+  margin-bottom: var(--spacing-md);
+  max-width: 800px;
 }
 
 .hero-subtitle {
@@ -389,7 +416,7 @@ a:hover {
   position: relative;
 }
 .hero-ornament::before {
-  content: 'â¬¥';
+  content: '\2726';
   color: var(--accent-gold);
   position: absolute;
   top: 50%;
@@ -816,8 +843,9 @@ a:hover {
   border-bottom-color: var(--text-light);
 }
 .btn-calendar::before {
-  content: 'ðŸ“…';
+  content: '\1F4C5';
   font-size: 0.8rem;
+  margin-right: 6px;
 }
 
 .rsvp-section {
@@ -1098,7 +1126,7 @@ a:hover {
   background-color: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-right: none;
-  border-radius: var(--border-radius-sm) 0 0 var(--border-radius-sm);
+  border-radius: var(--border-radius-lg) 0 0 var(--border-radius-lg);
   color: var(--text-light);
   font-family: var(--font-body);
   font-size: 0.9rem;
@@ -1113,7 +1141,7 @@ a:hover {
   padding: 10px 16px;
   background-color: var(--brand-primary);
   border: 1px solid var(--brand-primary);
-  border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
+  border-radius: 0 var(--border-radius-lg) var(--border-radius-lg) 0;
   color: var(--text-light);
   font-weight: 700;
   cursor: pointer;
@@ -1308,7 +1336,7 @@ a:hover {
   gap: 8px;
 }
 .modal-author-books-list li::before {
-  content: 'âœ¦';
+  content: '\2726';
   color: var(--accent-gold);
   font-size: 0.8rem;
 }
@@ -1545,6 +1573,40 @@ a:hover {
     --spacing-lg: calc(var(--spacing-unit) * 1.25);
   }
 
+  .hero {
+    padding-top: 105px;
+    padding-bottom: 60px;
+    min-height: auto;
+  }
+
+  .brand-logo {
+    font-size: 1.2rem;
+  }
+
+  .logo-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+
+  .logo-main {
+    font-size: 0.95rem;
+    font-weight: 400;
+    line-height: 1;
+  }
+
+  .logo-sub {
+    font-size: 1.15rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-top: 2px;
+  }
+
+  .header-actions .dark-mode-toggle {
+    display: none;
+  }
+
   .site-nav {
     display: none;
   }
@@ -1587,9 +1649,15 @@ a:hover {
     --spacing-xl: calc(var(--spacing-unit) * 2);
     --spacing-lg: var(--spacing-unit);
   }
+  .logo-main {
+    font-size: 0.85rem;
+  }
+  .logo-sub {
+    font-size: 1.05rem;
+  }
   .hero {
     padding: 0 var(--spacing-xs);
-    padding-top: 150px;
+    padding-top: 95px;
   }
   .countdown-container {
     padding: var(--spacing-xs) var(--spacing-sm);
@@ -1746,6 +1814,29 @@ a:hover {
   flex-direction: column;
   overflow-y: auto;
 }
+.mobile-nav-theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: auto;
+  margin-bottom: 2rem;
+  color: var(--text-light);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+.mobile-nav-theme-toggle .dark-mode-toggle {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-light);
+  width: 40px;
+  height: 40px;
+}
 .mobile-nav-overlay.active .mobile-nav {
   transform: translateX(0);
 }
@@ -1864,7 +1955,7 @@ a:hover {
   padding: 7px 18px;
   background: transparent;
   border: 1px solid rgba(212, 175, 55, 0.25);
-  border-radius: 20px;
+  border-radius: var(--border-radius-lg);
   color: #888;
   font-family: var(--font-body);
   font-size: 0.78rem;

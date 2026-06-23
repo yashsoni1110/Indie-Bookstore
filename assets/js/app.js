@@ -28,11 +28,11 @@ function init() {
   setupListeners();
 }
 
-// ─── Event metadata ───────────────────────────────────────────────────────
+// Event metadata
 
 async function fetchEventData() {
   try {
-    const res = await fetch('https://api.mocki.io/v2/01d0a1b0-2f3b-4c4d-9e0a-1b0c2d3e4f5a');
+    const res = await fetch('assets/data/event.json');
     if (!res.ok) throw new Error();
 
     const data = await res.json();
@@ -62,7 +62,7 @@ function updatePageTitle() {
   if (venue) venue.textContent = eventLocation;
 }
 
-// ─── Countdown ────────────────────────────────────────────────────────────
+// Event countdown
 
 function startCountdown() {
   if (timerInterval) clearInterval(timerInterval);
@@ -101,7 +101,7 @@ function setDigit(id, value) {
   el.addEventListener('animationend', () => el.classList.remove('flipping'), { once: true });
 }
 
-// ─── Speakers ─────────────────────────────────────────────────────────────
+// Speaker list
 
 const SPEAKER_DETAILS = [
   {
@@ -235,7 +235,7 @@ function renderSpeakers() {
   setupRevealObserver();
 }
 
-// ─── Author modal ─────────────────────────────────────────────────────────
+// Author details modal
 
 function openAuthorModal(id) {
   const sp = speakers.find(s => s.id === parseInt(id));
@@ -279,7 +279,7 @@ function openAuthorModal(id) {
   openModal(document.getElementById('author-modal'));
 }
 
-// ─── Modals ───────────────────────────────────────────────────────────────
+// General modal controls
 
 function openModal(el) {
   lastFocused = document.activeElement;
@@ -301,7 +301,7 @@ function closeAllModals() {
   document.querySelectorAll('.modal-overlay.active').forEach(closeModal);
 }
 
-// ─── RSVP form ────────────────────────────────────────────────────────────
+// RSVP form submission
 
 async function submitRSVP(e) {
   e.preventDefault();
@@ -381,7 +381,7 @@ function validateField(field) {
   return !msg;
 }
 
-// ─── Calendar (.ics) download ─────────────────────────────────────────────
+// Calendar (.ics) generation
 
 function downloadICS(title, desc, hour, min) {
   const base  = eventDate || new Date();
@@ -410,7 +410,7 @@ function downloadICS(title, desc, hour, min) {
   a.remove();
 }
 
-// ─── Scroll & reveal ──────────────────────────────────────────────────────
+// Scrollspy & page reveal animations
 
 function setupScrollEffects() {
   const heroBg = document.querySelector('.hero-bg');
@@ -458,7 +458,7 @@ function setupRevealObserver() {
   sections.forEach(s => spyObs.observe(s));
 }
 
-// ─── Mobile nav ───────────────────────────────────────────────────────────
+// Mobile overlay menu navigation
 
 function setupMobileNav() {
   const hamburger = document.getElementById('hamburger-btn');
@@ -493,31 +493,35 @@ function setupMobileNav() {
   });
 }
 
-// ─── Dark mode ────────────────────────────────────────────────────────────
+// Dark/Light theme toggle
 
 function setupDarkMode() {
-  const btn = document.getElementById('dark-mode-toggle');
-  if (!btn) return;
+  const buttons = document.querySelectorAll('.dark-mode-toggle');
+  if (!buttons.length) return;
 
-  const savedIcon = btn.innerHTML;
+  const moonIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
   const sunIcon   = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
 
   const apply = isDark => {
     document.body.classList.toggle('dark-mode', isDark);
-    btn.innerHTML = isDark ? sunIcon : savedIcon;
-    btn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+    buttons.forEach(btn => {
+      btn.innerHTML = isDark ? sunIcon : moonIcon;
+      btn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+    });
   };
 
   apply(localStorage.getItem('darkMode') === 'true');
 
-  btn.addEventListener('click', () => {
-    const next = !document.body.classList.contains('dark-mode');
-    apply(next);
-    localStorage.setItem('darkMode', next);
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const next = !document.body.classList.contains('dark-mode');
+      apply(next);
+      localStorage.setItem('darkMode', next);
+    });
   });
 }
 
-// ─── Schedule filter ──────────────────────────────────────────────────────
+// Timeline category filtering
 
 function setupScheduleFilter() {
   const buttons = document.querySelectorAll('.filter-btn');
@@ -537,7 +541,7 @@ function setupScheduleFilter() {
   });
 }
 
-// ─── Typewriter ───────────────────────────────────────────────────────────
+// Typewriter visual effect
 
 function startTypewriter() {
   const el = document.getElementById('hero-subtitle');
@@ -556,7 +560,7 @@ function startTypewriter() {
   }, 65);
 }
 
-// ─── Seats badge ──────────────────────────────────────────────────────────
+// Remaining seat counts animation
 
 function updateSeatsDisplay() {
   const el = document.getElementById('seats-count');
@@ -565,7 +569,7 @@ function updateSeatsDisplay() {
   el.textContent = Math.max(3, 47 - (daysSinceJan % 44));
 }
 
-// ─── Hero particles ───────────────────────────────────────────────────────
+// Background particle canvas system
 
 function spawnParticles() {
   const container = document.getElementById('hero-particles');
@@ -587,7 +591,7 @@ function spawnParticles() {
   }
 }
 
-// ─── Cursor spotlight ─────────────────────────────────────────────────────
+// Interactive spotlight hover effect
 
 function trackCursor() {
   // skip on touch-only devices
@@ -599,7 +603,7 @@ function trackCursor() {
   }, { passive: true });
 }
 
-// ─── Stat counters ────────────────────────────────────────────────────────
+// Stats number counter animation
 
 function animateStats() {
   const nums = document.querySelectorAll('.stat-number[data-target]');
@@ -627,7 +631,7 @@ function animateStats() {
   nums.forEach(n => observer.observe(n));
 }
 
-// ─── Confetti ─────────────────────────────────────────────────────────────
+// RSVP canvas confetti effect
 
 function fireConfetti() {
   const box    = document.createElement('div');
@@ -655,7 +659,7 @@ function fireConfetti() {
   setTimeout(() => box.remove(), 5500);
 }
 
-// ─── Toast ────────────────────────────────────────────────────────────────
+// Toast notification handlers
 
 function showToast(msg, type = 'success') {
   const container = document.getElementById('toast-container');
@@ -672,7 +676,7 @@ function showToast(msg, type = 'success') {
   }, 3600);
 }
 
-// ─── Focus trap (for modals) ──────────────────────────────────────────────
+// Keyboard modal focus locking
 
 function trapFocus(e, modal) {
   const focusable = modal.querySelectorAll('button, [href], input, [tabindex="0"]');
@@ -688,7 +692,7 @@ function trapFocus(e, modal) {
   }
 }
 
-// ─── Event listeners ──────────────────────────────────────────────────────
+// Page event bindings
 
 function setupListeners() {
   // author cards → open profile modal
