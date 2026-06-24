@@ -2,7 +2,6 @@
 
 const SPEAKERS_API    = 'https://jsonplaceholder.typicode.com/users';
 const RSVP_API        = 'https://httpbin.org/post';
-const TYPEWRITER_TEXT = 'A Signature Series Engagement';
 
 let eventDate     = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
 let eventName     = 'Signature Literary Gala';
@@ -14,7 +13,6 @@ let lastFocused   = null;
 document.addEventListener('DOMContentLoaded', init);
 
 function init() {
-  // Critical setup required for basic content & layout
   setupDarkMode();
   setupMobileNav();
   setupListeners();
@@ -22,20 +20,16 @@ function init() {
   fetchEventData();
   fetchSpeakers();
 
-  // Defer decorative scripts until the browser is idle to keep the main thread unblocked
   if ('requestIdleCallback' in window) {
     requestIdleCallback(deferredInit);
   } else {
-    setTimeout(deferredInit, 120);
+    setTimeout(deferredInit, 100);
   }
 }
 
 function deferredInit() {
   setupScheduleFilter();
-  startTypewriter();
   updateSeatsDisplay();
-  spawnParticles();
-  trackCursor();
   animateStats();
 }
 
@@ -262,8 +256,8 @@ function openAuthorModal(id) {
   emailEl.textContent = sp.email;
 
   document.getElementById('modal-author-bio').innerHTML = `
-    <p style="font-style:italic;color:var(--accent-gold);margin-bottom:12px;">"${sp.tagline}"</p>
-    <p style="font-weight:600;margin-bottom:var(--spacing-sm);">Focus: ${sp.workStyle}</p>
+    <p class="modal-author-tagline">"${sp.tagline}"</p>
+    <p class="modal-author-focus">Focus: ${sp.workStyle}</p>
     <p>${sp.bio}</p>
   `;
 
@@ -360,7 +354,6 @@ async function submitRSVP(e) {
     document.getElementById('success-event-location').textContent = eventLocation;
 
     e.target.reset();
-    fireConfetti();
     openModal(document.getElementById('success-modal'));
 
   } catch {
@@ -552,69 +545,12 @@ function setupScheduleFilter() {
   });
 }
 
-// Typewriter visual effect
-
-function startTypewriter() {
-  const el = document.getElementById('hero-subtitle');
-  if (!el) return;
-
-  el.textContent = '';
-  el.classList.add('typewriter-active');
-
-  let i = 0;
-  const interval = setInterval(() => {
-    el.textContent += TYPEWRITER_TEXT[i++];
-    if (i >= TYPEWRITER_TEXT.length) {
-      clearInterval(interval);
-      setTimeout(() => el.classList.remove('typewriter-active'), 3000);
-    }
-  }, 65);
-}
-
-// Remaining seat counts animation
-
 function updateSeatsDisplay() {
   const el = document.getElementById('seats-count');
   if (!el) return;
   const daysSinceJan = Math.floor((Date.now() - new Date('2026-01-01').getTime()) / 86400000);
   el.textContent = Math.max(3, 47 - (daysSinceJan % 44));
 }
-
-// Background particle canvas system
-
-function spawnParticles() {
-  const container = document.getElementById('hero-particles');
-  if (!container || window.innerWidth < 768) return;
-
-  for (let i = 0; i < 22; i++) {
-    const dot  = document.createElement('span');
-    const size = 2 + Math.random() * 4;
-    dot.className = 'hero-particle';
-    dot.style.cssText = `
-      width:${size}px; height:${size}px;
-      left:${Math.random() * 100}%;
-      top:${Math.random() * 100}%;
-      --p-opacity:${(0.08 + Math.random() * 0.35).toFixed(2)};
-      animation-duration:${(5 + Math.random() * 8).toFixed(1)}s;
-      animation-delay:${(Math.random() * -10).toFixed(1)}s
-    `;
-    container.appendChild(dot);
-  }
-}
-
-// Interactive spotlight hover effect
-
-function trackCursor() {
-  // skip on touch-only devices
-  if (window.matchMedia('(hover: none)').matches) return;
-
-  document.addEventListener('mousemove', e => {
-    document.documentElement.style.setProperty('--cursor-x', e.clientX + 'px');
-    document.documentElement.style.setProperty('--cursor-y', e.clientY + 'px');
-  }, { passive: true });
-}
-
-// Stats number counter animation
 
 function animateStats() {
   const nums = document.querySelectorAll('.stat-number[data-target]');
@@ -640,51 +576,6 @@ function animateStats() {
   }, { threshold: 0.5 });
 
   nums.forEach(n => observer.observe(n));
-}
-
-// RSVP canvas confetti effect
-
-function fireConfetti() {
-  const box    = document.createElement('div');
-  box.className = 'confetti-container';
-  document.body.appendChild(box);
-
-  const colors = ['#A30000', '#D4AF37', '#F8F0E3', '#7a0000', '#bfa032', '#cc3333', '#e8c84a'];
-
-  for (let i = 0; i < 85; i++) {
-    const dot  = document.createElement('span');
-    const size = 4 + Math.random() * 9;
-    dot.className = 'confetti-piece';
-    dot.style.cssText = `
-      left:${Math.random() * 100}%;
-      width:${size}px;
-      height:${(size * (0.4 + Math.random() * 0.8)).toFixed(1)}px;
-      background:${colors[Math.floor(Math.random() * colors.length)]};
-      border-radius:${Math.random() > 0.45 ? '50%' : '2px'};
-      animation-delay:${(Math.random() * 0.9).toFixed(2)}s;
-      animation-duration:${(2.2 + Math.random() * 2).toFixed(1)}s
-    `;
-    box.appendChild(dot);
-  }
-
-  setTimeout(() => box.remove(), 5500);
-}
-
-// Toast notification handlers
-
-function showToast(msg, type = 'success') {
-  const container = document.getElementById('toast-container');
-  if (!container) return;
-
-  const toast = document.createElement('div');
-  toast.className   = `toast ${type}`;
-  toast.textContent = msg;
-  container.appendChild(toast);
-
-  setTimeout(() => {
-    toast.classList.add('exiting');
-    toast.addEventListener('animationend', () => toast.remove(), { once: true });
-  }, 3600);
 }
 
 // Keyboard modal focus locking
